@@ -1,0 +1,26 @@
+# Arquivos de ambiente
+.env
+
+# Dados do PostgreSQL (volumes do Docker)
+postgres_data/
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
