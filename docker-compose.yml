@@ -3,10 +3,12 @@ services:
     image: postgres:15-alpine
     container_name: pokedex_postgres
     restart: unless-stopped
+    env_file:
+      - .env.docker
     environment:
-      POSTGRES_DB: ${DB_NAME:-bautomation_db}
-      POSTGRES_USER: ${DB_USER:-bautomation_user}
-      POSTGRES_PASSWORD: ${DB_PASS:-admin123}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "${DB_PORT:-5433}:5432"
@@ -25,6 +27,8 @@ services:
     build: .
     container_name: pokedex_streamlit
     restart: unless-stopped
+    env_file:
+      - .env.docker
     environment:
       - PYTHONUNBUFFERED=1
     ports:
@@ -44,11 +48,13 @@ services:
     image: dpage/pgadmin4:latest
     container_name: pokedex_pgadmin
     restart: unless-stopped
+    env_file:
+      - .env.docker
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pokedex.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
-      - "${PGADMIN_PORT:-8080}:80"
+      - "${PGADMIN_PORT}:80"
     depends_on:
       - postgres
     networks:
