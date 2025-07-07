@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 
+# Página de lançamento de dados
+
 def lancamento():
     st.title("Lançamento de Dados")
     st.write("Esta página é para o lançamento de dados.")
@@ -29,7 +31,10 @@ def lancamento():
     
     # Processar arquivo do balancete
     df_balancete = None
+
+    # Recebeu o arquivo
     if balancete_file is not None:
+        #Ler
         try:
             # Mostrar informações do arquivo
             st.info(f"Balancete carregado: {balancete_file.name} ({balancete_file.size} bytes)")
@@ -37,19 +42,22 @@ def lancamento():
             # Processar o arquivo
             df_balancete = _process_balancete_file(balancete_file)
             
+            # Retorno do processamento
             if df_balancete is not None:
                 # Salvar no session state
                 st.session_state['df_balancete_completo'] = df_balancete
                 st.success("✅ Balancete processado e salvo com sucesso!")
             else:
                 st.error("Erro ao processar o arquivo do balancete.")
-                
+
+        #Não leu      
         except Exception as e:
             st.error(f"Erro ao carregar o arquivo do balancete: {str(e)}")
             st.error("Tente recarregar a página e enviar o arquivo novamente.")
     
     # Processar arquivo do mapeamento
     df_mapeamento = None
+    # Recebeu o arquivo
     if mapeamento_file is not None:
         try:
             # Mostrar informações do arquivo
@@ -58,6 +66,7 @@ def lancamento():
             # Processar o arquivo
             df_mapeamento = _process_mapeamento_file(mapeamento_file)
             
+            # Retorno do processamento
             if df_mapeamento is not None:
                 # Salvar no session state
                 st.session_state['df_mapeamento'] = df_mapeamento
@@ -81,7 +90,6 @@ def _process_balancete_file(balancete_file):
     try:
         # Ler o arquivo Excel (sheet_name=None retorna um dicionário com todas as abas)
         all_sheets = pd.read_excel(balancete_file, sheet_name=None)
-        #st.write("Dados carregados com sucesso!")
         
         # Se há múltiplas abas, permitir que o usuário escolha
         if len(all_sheets) > 1:
@@ -97,7 +105,6 @@ def _process_balancete_file(balancete_file):
             # Se há apenas uma aba, usar ela diretamente
             sheet_name = list(all_sheets.keys())[0]
             df = all_sheets[sheet_name]
-            st.info(f"Processando aba única: {sheet_name}")
         
         # Verificar colunas obrigatórias
         required_columns = {
@@ -127,9 +134,6 @@ def _process_balancete_file(balancete_file):
 
 
 def _vizualize_data(df):
-    # Exibir as primeiras linhas do DataFrame
-    # st.subheader("Visualização dos Dados")
-    # st.dataframe(df.head(10), use_container_width=True)
     
     # Permitir visualização completa dos dados
     if st.checkbox("Mostrar os dados do balancete"):
@@ -157,7 +161,6 @@ def _process_mapeamento_file(mapeamento_file):
             # Se há apenas uma aba, usar ela diretamente
             sheet_name = list(all_sheets.keys())[0]
             df = all_sheets[sheet_name]
-            st.info(f"Processando aba única do mapeamento: {sheet_name}")
         
         # Visualizar os dados do mapeamento
         _vizualize_mapeamento_data(df)

@@ -1,8 +1,10 @@
+#Importando
 import streamlit as st
 from pages.lancamento import lancamento
 from pages.carteira import carteira
 from pages.conciliador import conciliador
 
+# Definição das páginas importadas
 def page_lancamento():
     lancamento()
 
@@ -11,15 +13,6 @@ def page_carteira():
 
 def page_conciliador():
     conciliador()
-
-# Configuração da página
-st.set_page_config(
-    page_title="Conciliador",
-    page_icon="�",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 
 # Definir as páginas
 pages = [ 
