@@ -21,6 +21,24 @@ services:
       timeout: 5s
       retries: 5
 
+  streamlit:
+    build: .
+    container_name: pokedex_streamlit
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+    networks:
+      - pokedex_network
+    volumes:
+      - ./app:/app
+      - ./requirements.txt:/requirements.txt
+      # Caso queira hot reload, descomente a linha abaixo
+      # - .:/app
+
   # Opcional: pgAdmin para administração web do banco
   pgadmin:
     image: dpage/pgadmin4:latest
