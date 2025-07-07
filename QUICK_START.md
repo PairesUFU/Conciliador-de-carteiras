@@ -26,14 +26,14 @@ make test     # 🧪 Testar conexão
 ## Informações de Conexão
 
 - **Host:** localhost
-- **Porta:** 5432
+- **Porta:** 5433
 - **Banco:** bautomation_db
 - **Usuário:** bautomation_user
 - **Senha:** admin123
 
 **String de Conexão:**
 ```
-postgresql://bautomation_user:admin123@localhost:5432/bautomation_db
+postgresql://bautomation_user:admin123@localhost:5433/bautomation_db
 ```
 
 ## Precisa de Ajuda?

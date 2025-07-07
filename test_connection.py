@@ -12,13 +12,27 @@ except ImportError:
     print("❌ psycopg2 não está instalado. Instale com: pip install psycopg2-binary")
     sys.exit(1)
 
+# Carregar variáveis do arquivo .env se existir
+def load_env():
+    env_file = '.env'
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+
 def test_connection():
     """Testa a conexão com o banco de dados"""
+    
+    # Carregar .env primeiro
+    load_env()
     
     # Configurações de conexão (ou pega do .env)
     config = {
         'host': os.getenv('DB_HOST', 'localhost'),
-        'port': os.getenv('DB_PORT', '5432'),
+        'port': int(os.getenv('DB_PORT', '5433')),
         'database': os.getenv('DB_NAME', 'bautomation_db'),
         'user': os.getenv('DB_USER', 'bautomation_user'),
         'password': os.getenv('DB_PASS', 'admin123')

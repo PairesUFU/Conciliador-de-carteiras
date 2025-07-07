@@ -60,7 +60,7 @@ dev: ## Inicia ambiente de desenvolvimento (com pgAdmin)
 	@echo "🛠  Iniciando ambiente de desenvolvimento..."
 	@$(DOCKER_COMPOSE) --profile tools up -d
 	@echo "✅ Ambiente iniciado!"
-	@echo "   PostgreSQL: localhost:5432"
+	@echo "   PostgreSQL: localhost:5433"
 	@echo "   pgAdmin: http://localhost:8080"
 
 down: ## Para todos os containers

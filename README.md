@@ -72,14 +72,14 @@ docker-compose up -d
 Após iniciar os containers, use estas informações para conectar:
 
 - **Host:** localhost
-- **Porta:** 5432
+- **Porta:** 5433 (ou 5432 se não houver conflito)
 - **Banco:** bautomation_db
 - **Usuário:** bautomation_user
 - **Senha:** admin123
 
 **String de Conexão:**
 ```
-postgresql://bautomation_user:admin123@localhost:5432/bautomation_db
+postgresql://bautomation_user:admin123@localhost:5433/bautomation_db
 ```
 
 ### pgAdmin (Opcional)
@@ -105,7 +105,7 @@ DB_NAME=bautomation_db
 DB_USER=bautomation_user
 DB_PASS=admin123
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 
 # Configurações do pgAdmin (opcional)
 PGADMIN_EMAIL=admin@pokedex.com
@@ -213,7 +213,18 @@ Pokedex-Repair/
 ./docker-manager.sh logs
 
 # Verifique se a porta está ocupada
-lsof -i :5432
+lsof -i :5433
+```
+
+### Porta 5432 já está em uso
+Se você já tem PostgreSQL instalado localmente, a porta 5432 pode estar ocupada:
+
+```bash
+# Opção 1: Parar PostgreSQL local temporariamente
+brew services stop postgresql
+
+# Opção 2: Usar porta diferente (recomendado)
+# Edite o arquivo .env e mude DB_PORT=5432 para DB_PORT=5433
 ```
 
 ### Problemas de permissão
