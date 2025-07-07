@@ -1,6 +1,6 @@
-# 🐾 Pokedex Database
+# 🐾 Conciliador Database
 
-Sistema de banco de dados PostgreSQL containerizado para projetos Pokedex.
+Sistema de banco de dados PostgreSQL containerizado para projetos Conciliador.
 
 ## 📋 Índice
 
@@ -23,7 +23,7 @@ Sistema de banco de dados PostgreSQL containerizado para projetos Pokedex.
 
 ```bash
 git clone <url-do-repositorio>
-cd Pokedex-Repair
+cd Conciliador
 ```
 
 ### 2. Configure as variáveis de ambiente
@@ -92,7 +92,7 @@ docker-compose --profile tools up -d
 ```
 
 Acesse: http://localhost:8080
-- **Email:** admin@pokedex.com
+- **Email:** admin@conciliador.com
 - **Senha:** admin123
 
 ## ⚙️ Configuração
@@ -108,7 +108,7 @@ DB_HOST=localhost
 DB_PORT=5433
 
 # Configurações do pgAdmin (opcional)
-PGADMIN_EMAIL=admin@pokedex.com
+PGADMIN_EMAIL=admin@conciliador.com
 PGADMIN_PASSWORD=admin123
 PGADMIN_PORT=8080
 ```
@@ -192,7 +192,7 @@ chmod +x database/setup_db.sh
 ## 📁 Estrutura do Projeto
 
 ```
-Pokedex-Repair/
+Conciliador/
 ├── database/
 │   ├── init-scripts/
 │   │   ├── 01-init.sh      # Script de inicialização
@@ -256,7 +256,7 @@ Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes
 Como pode testar:
 # 1. Clonar o repositório
 git clone <seu-repositorio>
-cd Pokedex-Repair
+cd Conciliador
 
 # 2. Configuração automática (uma única vez)
 make setup

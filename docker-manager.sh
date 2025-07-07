@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE GERENCIAMENTO DO DOCKER - POKEDEX DATABASE
+# SCRIPT DE GERENCIAMENTO DO DOCKER - CONCILIADOR DATABASE
 # ==============================================================================
 # Este script facilita o gerenciamento do ambiente Docker
 # ==============================================================================
@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Função para exibir ajuda
 show_help() {
-    echo -e "${BLUE}🐳 Pokedex Database Docker Manager${NC}"
+    echo -e "${BLUE}🐳 Conciliador Database Docker Manager${NC}"
     echo ""
     echo "Uso: $0 [COMANDO]"
     echo ""
@@ -142,7 +142,7 @@ show_connection_info() {
     echo ""
     echo -e "${BLUE}pgAdmin (se habilitado):${NC}"
     echo "URL: http://localhost:${PGADMIN_PORT:-8080}"
-    echo "Email: ${PGADMIN_EMAIL:-admin@pokedex.com}"
+    echo "Email: ${PGADMIN_EMAIL:-admin@conciliador.com}"
     echo "Senha: ${PGADMIN_PASSWORD:-admin123}"
     echo ""
 }

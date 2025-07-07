@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: pokedex_postgres
+    container_name: conciliador_postgres
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -16,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init-scripts:/docker-entrypoint-initdb.d
     networks:
-      - pokedex_network
+      - conciliador_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bautomation_user} -d ${DB_NAME:-bautomation_db}"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
 
   streamlit:
     build: .
-    container_name: pokedex_streamlit
+    container_name: conciliador_streamlit
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -36,7 +36,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - pokedex_network
+      - conciliador_network
     volumes:
       - ./app:/app
       - ./requirements.txt:/requirements.txt
@@ -46,7 +46,7 @@ services:
   # Opcional: pgAdmin para administração web do banco
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: pokedex_pgadmin
+    container_name: conciliador_pgadmin
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -58,7 +58,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - pokedex_network
+      - conciliador_network
     profiles:
       - tools  # Use 'docker-compose --profile tools up' para incluir o pgAdmin
 
@@ -67,5 +67,5 @@ volumes:
     driver: local
 
 networks:
-  pokedex_network:
+  conciliador_network:
     driver: bridge
