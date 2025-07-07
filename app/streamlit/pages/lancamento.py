@@ -37,7 +37,11 @@ def lancamento():
             # Processar o arquivo
             df_balancete = _process_balancete_file(balancete_file)
             
-            if df_balancete is None:
+            if df_balancete is not None:
+                # Salvar no session state
+                st.session_state['df_balancete_completo'] = df_balancete
+                st.success("✅ Balancete processado e salvo com sucesso!")
+            else:
                 st.error("Erro ao processar o arquivo do balancete.")
                 
         except Exception as e:
@@ -54,7 +58,11 @@ def lancamento():
             # Processar o arquivo
             df_mapeamento = _process_mapeamento_file(mapeamento_file)
             
-            if df_mapeamento is None:
+            if df_mapeamento is not None:
+                # Salvar no session state
+                st.session_state['df_mapeamento'] = df_mapeamento
+                st.success("✅ Mapeamento processado e salvo com sucesso!")
+            else:
                 st.error("Erro ao processar o arquivo do mapeamento.")
                 
         except Exception as e:
@@ -68,10 +76,6 @@ def lancamento():
         st.warning("⚠️ Arquivo do balancete ainda não foi carregado.")
     elif mapeamento_file is None:
         st.warning("⚠️ Arquivo do mapeamento ainda não foi carregado.")
-    else:
-        if df_balancete is not None and df_mapeamento is not None:
-            st.success("✅ Ambos os arquivos foram processados com sucesso!")
-
     
 def _process_balancete_file(balancete_file):
     try:

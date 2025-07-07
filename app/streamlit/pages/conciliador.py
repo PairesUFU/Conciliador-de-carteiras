@@ -86,14 +86,14 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
         resultados = []
         
         # Iterar pelos itens da carteira
-        for _, row_carteira in df_carteira.iterrows():
+        for i, (_, row_carteira) in enumerate(df_carteira.iterrows()):
             ativo_carteira = row_carteira['ativo']
             valor_carteira = row_carteira['valor']
             
             # Procurar o nome correspondente no balancete através do mapeamento
             nome_balancete = None
             for nome_bal, ativo_cart in mapeamento_dict.items():
-                if ativo_cart == ativo_carteira:
+                if str(ativo_cart).strip() == str(ativo_carteira).strip():
                     nome_balancete = nome_bal
                     break
             
@@ -116,9 +116,9 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
             # Se não encontrou, tentar busca flexível
             if balancete_match.empty:
                 # Remover acentos e espaços extras, converter para maiúsculas
-                nome_limpo = nome_balancete.strip().upper()
+                nome_limpo = str(nome_balancete).strip().upper()
                 df_balancete_limpo = df_balancete.copy()
-                df_balancete_limpo['Nome_Limpo'] = df_balancete_limpo['Nome'].str.strip().str.upper()
+                df_balancete_limpo['Nome_Limpo'] = df_balancete_limpo['Nome'].astype(str).str.strip().str.upper()
                 
                 # Tentar busca exata com nome limpo
                 balancete_match = df_balancete[df_balancete_limpo['Nome_Limpo'] == nome_limpo]
@@ -126,11 +126,6 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 # Se ainda não encontrou, tentar busca parcial
                 if balancete_match.empty:
                     balancete_match = df_balancete[df_balancete_limpo['Nome_Limpo'].str.contains(nome_limpo, na=False)]
-                    
-                    # Se encontrou múltiplos, pegar o primeiro
-                    if len(balancete_match) > 1:
-                        st.write(f"⚠️ Encontrados {len(balancete_match)} registros similares para '{nome_balancete}'. Usando o primeiro.")
-            
             
             if balancete_match.empty:
                 # Nome do balancete não encontrado
@@ -148,14 +143,12 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 
                 # Verificar se o valor é válido (não é NaN ou None)
                 if pd.isna(saldo_balancete):
-                    st.write(f"- ⚠️ Valor SldAtu é NaN para {ativo_carteira}")
                     saldo_balancete = 0.0
                 
                 # Converter para float se necessário
                 try:
                     saldo_balancete = float(saldo_balancete)
                 except (ValueError, TypeError):
-                    st.write(f"- ⚠️ Não foi possível converter SldAtu para número: {saldo_balancete}")
                     saldo_balancete = 0.0
                 
                 diferenca = valor_carteira - saldo_balancete
