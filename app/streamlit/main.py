@@ -12,9 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Configurações do Streamlit para upload de arquivos
-st.set_option("server.maxUploadSize", 500)  # 500MB
-st.set_option("server.maxMessageSize", 500)  # 500MB
 
 # Definir as páginas
 pages = [ 
