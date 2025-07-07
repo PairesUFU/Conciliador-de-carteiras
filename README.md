@@ -1,4 +1,4 @@
-# Pokedex Repair
+# Pokedex-Repair
 
 Este é um projeto Streamlit para lançamento de dados.
 
