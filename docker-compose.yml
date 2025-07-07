@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pokedex_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-bautomation_db}
+      POSTGRES_USER: ${DB_USER:-bautomation_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-admin123}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - pokedex_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bautomation_user} -d ${DB_NAME:-bautomation_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Opcional: pgAdmin para administração web do banco
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pokedex_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pokedex.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    depends_on:
+      - postgres
+    networks:
+      - pokedex_network
+    profiles:
+      - tools  # Use 'docker-compose --profile tools up' para incluir o pgAdmin
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  pokedex_network:
+    driver: bridge
