@@ -5,3 +5,4 @@ openpyxl
 
 # Para conexão com PostgreSQL
 psycopg2-binary
+sqlalchemy
