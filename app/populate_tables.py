@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 import random
 import time
-from encoding_utils import load_csv_with_encoding_fix
+from encoding_utils import fix_text_encoding
 
 POSTGRES_HOST = os.getenv("DB_HOST", "postgres")
 POSTGRES_DB = os.getenv("DB_NAME", "bautomation_db")
@@ -137,7 +137,7 @@ def load_funds_from_csv(engine, csv_path: str):
     CSV deve ter colunas: id, name, slug, government_id, is_active
     """
     try:
-        df = load_csv_with_encoding_fix(csv_path, encoding='cp1252')
+        df = pd.read_csv(csv_path, encoding='cp1252')
         print(f"Carregando {len(df)} funds do arquivo {csv_path}")
         
         for _, row in df.iterrows():
@@ -161,7 +161,7 @@ def load_fund_quotas_from_csv(engine, csv_path: str):
     CSV deve ter colunas: id, fund_id, type, quota_name, wallet_external_id
     """
     try:
-        df = load_csv_with_encoding_fix(csv_path, encoding='cp1252')
+        df = pd.read_csv(csv_path, encoding='cp1252')
         print(f"Carregando {len(df)} fund_quotas do arquivo {csv_path}")
         
         for _, row in df.iterrows():
@@ -179,12 +179,61 @@ def load_fund_quotas_from_csv(engine, csv_path: str):
         print(f"Erro ao carregar fund_quotas do CSV: {e}")
 
 
+def fix_encoding_in_database(engine):
+    """
+    Corrige problemas de encoding diretamente no banco de dados
+    Aplica correções em todas as colunas de texto da tabela funds
+    """
+    print("🔧 Aplicando correções de encoding no banco de dados...")
+    
+    try:
+        with engine.begin() as connection:
+            # Busca todos os registros da tabela funds
+            select_query = "SELECT id, name, slug FROM public.funds"
+            result = connection.execute(text(select_query))
+            records = result.fetchall()
+            
+            corrections_count = 0
+            
+            for record in records:
+                fund_id, name, slug = record
+                
+                # Aplica correções nos campos de texto
+                corrected_name = fix_text_encoding(name) if name else name
+                corrected_slug = fix_text_encoding(slug) if slug else slug
+                
+                # Verifica se houve mudanças
+                if corrected_name != name or corrected_slug != slug:
+                    corrections_count += 1
+                    
+                    # Atualiza o registro no banco
+                    update_query = """
+                    UPDATE public.funds 
+                    SET name = :name, slug = :slug, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = :id
+                    """
+                    connection.execute(text(update_query), {
+                        "id": fund_id,
+                        "name": corrected_name,
+                        "slug": corrected_slug
+                    })
+                    
+                    print(f"   ✅ ID {fund_id}: '{name}' → '{corrected_name}'")
+            
+            print(f"🎉 Correções aplicadas: {corrections_count} registros corrigidos!")
+            
+    except Exception as e:
+        print(f"❌ Erro ao corrigir encoding no banco: {e}")
+
+
 def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
     create_funds_table_if_not_exists(engine)
     create_fund_quotas_table_if_not_exists(engine)
     
     if funds_csv_path and os.path.exists(funds_csv_path):
         load_funds_from_csv(engine, funds_csv_path)
+        # Aplica correções de encoding APÓS inserir os dados
+        fix_encoding_in_database(engine)
     
     if fund_quotas_csv_path and os.path.exists(fund_quotas_csv_path):
         load_fund_quotas_from_csv(engine, fund_quotas_csv_path)
@@ -198,7 +247,9 @@ if __name__ == "__main__":
     
     engine = get_engine()
     
-    funds_csv_path = "funds.csv"  # Arquivo na mesma pasta do script
+    # Caminho para o arquivo CSV (relativo ao diretório do script)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    funds_csv_path = os.path.join(current_dir, "funds.csv")
     
     # Verifica se o arquivo funds.csv existe
     print(f"📁 Verificando arquivo: {funds_csv_path}")
@@ -209,8 +260,8 @@ if __name__ == "__main__":
     else:
         print(f"⚠️ Arquivo {funds_csv_path} não encontrado. Criando apenas as tabelas...")
         # Vamos listar o que tem no diretório para debug
-        print(f"📋 Conteúdo do diretório /app/:")
-        for item in os.listdir("/app/"):
+        print(f"📋 Conteúdo do diretório {current_dir}:")
+        for item in os.listdir(current_dir):
             print(f"  - {item}")
         populate_tables(engine, None, None)
     

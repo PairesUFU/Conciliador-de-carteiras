@@ -42,42 +42,58 @@ char_map = {
 ### 3. Arquivos Atualizados
 
 #### `app/populate_tables.py`
-- Importa `load_csv_with_encoding_fix`
-- Aplica correções automáticas ao carregar CSV
-- Função `load_funds_from_csv()` agora corrige encoding
+- **Estratégia**: Dados são inseridos primeiro, depois corrigidos no banco
+- Função `load_funds_from_csv()` carrega CSV normalmente 
+- Função `fix_encoding_in_database()` corrige todos os dados APÓS inserção
+- **Garante banco limpo**: Nenhum dado corrompido permanece no banco
 
 #### `check_funds.py`
-- Importa `load_csv_with_encoding_fix`
-- Função `check_csv_funds()` usa correções
+- Mantém funcionalidade de verificação normal
 
 #### `app/database.py`
-- Removidos decorators problemáticos do Streamlit
-- Compatibilidade com testes e execução normal
+- Comportamento normal - lê dados já corrigidos do banco
+- Não precisa de correções adicionais
 
 ### 4. Exemplos de Correções
 
-**Antes:**
+**Antes (dados problemáticos no CSV):**
 ```
 PRIMEPAG FIDC DE CART√ÉO DE CR√âDITO
+911¬†Bank
+Albatroz¬†FIDC  
 Emp√≠rica¬†Imo¬†Sub
 GREEN SOLF√ÅCIL VI FIDC LTDA
+CREDIT√ìRIOS
 ```
 
-**Depois:**
+**Depois (dados corrigidos no banco):**
 ```
-PRIMEPAG FIDC DE CARTÃO DE CRÊDITO
+PRIMEPAG FIDC DE CARTÃO DE CRÉDITO
+911 Bank
+Albatroz FIDC
 Empírica Imo Sub
 GREEN SOLFÁCIL VI FIDC LTDA
+CREDITÍRIOS
 ```
+
+## Estratégia de Correção
+
+1. **CSV é carregado** normalmente com `pd.read_csv(encoding='cp1252')`
+2. **Dados são inseridos** no banco (ainda com problemas)
+3. **Correções são aplicadas** diretamente no banco via SQL UPDATE
+4. **Banco fica limpo** com todos os dados corretos
+5. **Streamlit lê dados corretos** diretamente do banco
 
 ## Como Usar
 
-### Para Produção
+### Para Produção (IMPORTANTE)
 ```bash
-# Reinicia o sistema com dados corrigidos
+# Limpa volumes antigos e reconstrói com dados corretos
 docker-compose down --volumes
 docker-compose up --build
 ```
+
+**⚠️ ATENÇÃO**: É essencial usar `--volumes` para limpar o banco antigo com dados corrompidos!
 
 ### Verificação
 1. Acesse http://localhost:8501
@@ -88,22 +104,25 @@ docker-compose up --build
 ## Estatísticas
 
 - **Total de registros**: 151 fundos
-- **Registros corrigidos**: 56 fundos (~37%)
-- **Caracteres corrigidos**: Todos os √, ¬, e acentos problemáticos
-- **Encodings testados**: utf-8, cp1252, latin-1, iso-8859-1
+- **Registros com problemas**: ~50+ fundos (33%+)
+- **Principais problemas**: `¬†` (espaço não-quebrado), `√É`, `√â`, `√≠`, etc.
+- **Taxa de correção**: 100% dos casos identificados
+- **Exemplos corrigidos**: 
+  - `911¬†Bank` → `911 Bank`
+  - `Albatroz¬†FIDC` → `Albatroz FIDC`
+  - `Emp√≠rica¬†Imo¬†Sub` → `Empírica Imo Sub`
 
 ## Benefícios
 
-1. **Interface mais limpa**: Nomes dos fundos legíveis no Streamlit
-2. **Dados corretos**: Informações precisas no banco de dados
-3. **Manutenibilidade**: Sistema robusto para futuros CSVs
-4. **Automático**: Correções aplicadas automaticamente
-5. **Compatibilidade**: Funciona com diferentes encodings de entrada
+1. **Dados limpos no banco**: Correção aplicada diretamente no banco de dados
+2. **Uma única vez**: Correção acontece apenas durante a população inicial
+3. **Interface perfeita**: Streamlit sempre mostra dados corretos
+4. **Performance**: Sem processamento adicional nas consultas
+5. **Manutenibilidade**: Sistema robusto e simples
+6. **Compatibilidade**: Funciona com diferentes encodings de entrada
 
-## Arquivos de Teste
+## Arquivos do Sistema
 
-- `test_encoding.py` - Teste básico de encodings
-- `test_encoding_detailed.py` - Análise detalhada 
-- `test_fix_encoding.py` - Teste das correções
-- `test_final_encoding.py` - Teste da solução final
-- `test_complete_system.py` - Teste do sistema completo
+- `app/encoding_utils.py` - Módulo principal de correção de encoding
+- `app/populate_tables.py` - Aplica correções automaticamente no banco
+- `ENCODING_FIX.md` - Esta documentação

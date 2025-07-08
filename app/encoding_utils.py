@@ -6,57 +6,124 @@ import re
 
 def create_encoding_fixes():
     """Cria um dicionário com correções de encoding conhecidas"""
-    # Mapeamento de caracteres problemáticos para corretos
+    # Mapeamento de caracteres problemáticos REAIS encontrados no CSV
     fixes = {
-        # Caracteres individuais problemáticos
-        '√É': 'Ã',
-        '√â': 'É',  # Corrigido para É em vez de Ê
-        '√≠': 'í',
-        '¬†': ' ',  # espaço não-quebrado
-        '√Å': 'Á',
-        '√ì': 'Í',
-        '√∫': 'ú',
-        '√©': 'é',
-        '√≤': 'ò',
-        '√°': 'à',
-        '√´': 'ô',
-        '√±': 'ã',
-        '√ß': 'ç',
-        '√∞': 'ñ',
-        '¬∞': 'º',
-        '¬™': '™',
+        # Padrões específicos completos (devem vir primeiro - mais específicos)
+        'PRIMEPAG FIDC DE CARTâˆšÃ‰O DE CRâˆšÃ¢DITO': 'PRIMEPAG FIDC DE CARTÃO DE CRÉDITO',
+        'UNAVANÂ¬â€ FIDCÂ¬â€ SUB': 'UNAVAN FIDC SUB',
+        'CREDITÂ¬â€ HIGH': 'CREDIT HIGH',
+        'MetropolitanaÂ¬â€ SB': 'Metropolitana SB',
+        'CLMÂ¬â€ FIDC': 'CLM FIDC',
+        'FICFIDCÂ¬â€ CREDÂ¬â€ MEZ': 'FICFIDC CRED MEZ',
+        'CedroÂ¬â€ FII': 'Cedro FII',
+        'VydeiraÂ¬â€ FIM': 'Vydeira FIM',
+        'UrbanoÂ¬â€ FIDC': 'Urbano FIDC',
+        'SilverÂ¬â€ LakeÂ¬â€ FIM': 'Silver Lake FIM',
+        'AlbatrozÂ¬â€ FIDC': 'Albatroz FIDC',
+        'SilverÂ¬â€ StoneÂ¬â€ SB': 'Silver Stone SB',
+        'Empâˆšâ‰ ricaÂ¬â€ ImoÂ¬â€ Sub': 'Empírica Imo Sub',
+        'HBÂ¬â€ FIDCÂ¬â€ NP': 'HB FIDC NP',
+        'AceleraÂ¬â€ FIDC': 'Acelera FIDC',
+        'SeteÂ¬â€ RocasÂ¬â€ SUB': 'Sete Rocas SUB',
+        'TARGETÂ¬â€ FICÂ¬â€ FIMÂ¬â€ C': 'TARGET FIC FIM C',
+        'MULTIBANKÂ¬â€ FIDC': 'MULTIBANK FIDC',
+        'AroeiraÂ¬â€ FIDC': 'Aroeira FIDC',
+        'ARACARÂ¬â€ FIDC': 'ARACAR FIDC',
+        'BKÂ¬â€ IÂ¬â€ FIDCÂ¬â€ NP': 'BK I FIDC NP',
+        'PRECÂ¬â€ BRÂ¬â€ FIDC': 'PREC BR FIDC',
+        'J17Â¬â€ OrionÂ¬â€ FIMÂ¬â€ CP': 'J17 Orion FIM CP',
+        'CoinvestÂ¬â€ FICFIDC': 'Coinvest FICFIDC',
+        'QIÂ¬â€ FIDC': 'QI FIDC',
+        'GAMGÂ¬â€ FIMÂ¬â€ CP': 'GAMG FIM CP',
+        'ReconlogÂ¬â€ FIDC': 'Reconlog FIDC',
+        'FATUREÂ¬â€ FIDC': 'FATURE FIDC',
+        'LIFTCREDÂ¬â€ JR': 'LIFTCRED JR',
+        'SOMACREDÂ¬â€ FIDC': 'SOMACRED FIDC',
+        'QFLASHÂ¬â€ KG': 'QFLASH KG',
+        'MAKENAÂ¬â€ FIDC': 'MAKENA FIDC',
+        'PUSHÂ¬â€ FIDCÂ¬â€ COMEX': 'PUSH FIDC COMEX',
+        'EOSÂ¬â€ FIDC': 'EOS FIDC',
+        'CONTBANKÂ¬â€ FIDC': 'CONTBANK FIDC',
+        'WCAPITALÂ¬â€ FIDC': 'WCAPITAL FIDC',
+        'AtivaÂ¬â€ FIDC': 'Ativa FIDC',
+        'AracuaÂ¬â€ FICFIM': 'Aracua FICFIM',
+        'ZermattÂ¬â€ FICFIM': 'Zermatt FICFIM',
+        'FatureÂ¬â€ FICÂ¬â€ FIM': 'Fature FIC FIM',
+        '911Â¬â€ Bank': '911 Bank',
+        'NOBELÂ¬â€ 2Â¬â€ FIDC': 'NOBEL 2 FIDC',
+        'NETMONEYÂ¬â€ FIDC': 'NETMONEY FIDC',
+        'HealthÂ¬â€ FIDC': 'Health FIDC',
+        'GoorooÂ¬â€ Fidc': 'Gooroo Fidc',
+        'BotucatuÂ¬â€ FIDC': 'Botucatu FIDC',
+        'FATUREÂ¬â€ IIÂ¬â€ FIDC': 'FATURE II FIDC',
+        'DOROÂ¬â€ FIDC': 'DORO FIDC',
+        'NordeÂ¬â€ FIDC': 'Norte FIDC',
+        'GREEN SOLFâˆšÃ…CIL VI FIDC LTDA': 'GREEN SOLFÁCIL VI FIDC LTDA',
+        'AGROCANA FUNDO DE INVESTIMENTO EM DIREITOS CREDITâˆšÃ¬RIOS RESPONSABILIDADE LIMITADA': 'AGROCANA FUNDO DE INVESTIMENTO EM DIREITOS CREDITÓRIOS RESPONSABILIDADE LIMITADA',
+        'FIDC Mâˆšâˆ«ltiplo BNK': 'FIDC Múltiplo BNK',
+        'FIP TIG MultiestratâˆšÂ©gia': 'FIP TIG Multiestratégia',
+        'FIP Macaâˆšâˆ«bas': 'FIP Macaúbas',
+        'GRANA TECH CRâˆšÃ¢DITO POPULAR': 'GRANA TECH CRÉDITO POPULAR',
         
-        # Padrões específicos mais longos (devem vir antes dos individuais)
-        'CART√ÉO DE CR√âDITO': 'CARTÃO DE CRÉDITO',
-        'CREDIT√ìRIOS': 'CREDITÓRIOS',
-        'M√∫ltiplo': 'Múltiplo',
-        'Multiestrat√©gia': 'Multiestratégia',
-        'Maca√∫bas': 'Macaúbas',
-        'SOLF√ÅCIL': 'SOLFÁCIL',
-        'Emp√≠rica': 'Empírica',
-        'CR√âDITO': 'CRÉDITO',
-        'CART√ÉO': 'CARTÃO',
+        # Padrões médios (palavras específicas)
+        'CARTâˆšÃ‰O DE CRâˆšÃ¢DITO': 'CARTÃO DE CRÉDITO',
+        'CREDITâˆšÃ¬RIOS': 'CREDITÓRIOS',
+        'Mâˆšâˆ«ltiplo': 'Múltiplo',
+        'MultiestratâˆšÂ©gia': 'Multiestratégia',
+        'Macaâˆšâˆ«bas': 'Macaúbas',
+        'SOLFâˆšÃ…CIL': 'SOLFÁCIL',
+        'EmpâˆšÂ¡rica': 'Empírica',
+        'Empâˆšâ‰ rica': 'Empírica',
+        'CRâˆšÃ¢DITO': 'CRÉDITO',
+        'CARTâˆšÃ‰O': 'CARTÃO',
+        
+        # Padrões de espaço mais específicos
+        'Â¬â€ FIDC': ' FIDC',
+        'Â¬â€ FIM': ' FIM',
+        'Â¬â€ FII': ' FII',
+        'Â¬â€ SUB': ' SUB',
+        'Â¬â€ HIGH': ' HIGH',
+        'Â¬â€ SB': ' SB',
+        'Â¬â€ MEZ': ' MEZ',
+        'Â¬â€ Bank': ' Bank',
+        'Â¬â€ Lake': ' Lake',
+        'Â¬â€ Stone': ' Stone',
+        'Â¬â€ Imo': ' Imo',
+        'Â¬â€ NP': ' NP',
+        'Â¬â€ BR': ' BR',
+        'Â¬â€ I': ' I',
+        'Â¬â€ Orion': ' Orion',
+        'Â¬â€ CP': ' CP',
+        'Â¬â€ FIC': ' FIC',
+        'Â¬â€ JR': ' JR',
+        'Â¬â€ KG': ' KG',
+        'Â¬â€ COMEX': ' COMEX',
+        'Â¬â€ FICFIM': ' FICFIM',
+        'Â¬â€ 2': ' 2',
+        'Â¬â€ II': ' II',
+        'Â¬â€ C': ' C',
+        
+        # Padrões individuais de caracteres problemáticos (devem vir por último)
+        'âˆšÃ‰': 'Ã',      # CARTÃO
+        'âˆšÃ¢': 'É',      # CRÉDITO  
+        'âˆšâ‰': 'í',      # Empírica
+        'âˆšÃ…': 'Á',      # SOLFÁCIL
+        'âˆšÃ¬': 'Í',      # CREDITÓRIOS
+        'âˆšâˆ«': 'ú',      # Múltiplo, Macaúbas
+        'âˆšÂ©': 'é',      # Multiestratégia
+        'âˆšÂ¡': 'í',      # Empírica
+        'Â¬â€ ': ' ',      # espaço não-quebrado (padrão real mais geral)
+        'Â¬â€': ' ',       # espaço não-quebrado sem espaço final
+        
+        # Caracteres individuais problemáticos
+        '\u00A0': ' ',     # espaço não-quebrado
+        'â€™': "'",        # apóstrofe curvado
+        'â€œ': '"',        # aspas abertas
+        'â€': '"',         # aspas fechadas
+        'â€"': '-',        # hífen em dash
+        'Â': '',           # Â isolado
+        '¬': '',           # caractere negação isolado
     }
-    
-    # Adiciona padrões com espaços não-quebrados
-    space_fixes = {
-        '¬†FIDC¬†': ' FIDC ',
-        '¬†FIM¬†': ' FIM ',
-        '¬†FII¬†': ' FII ',
-        '¬†SUB¬†': ' SUB ',
-        '¬†CRED¬†': ' CRED ',
-        '¬†Lake¬†': ' Lake ',
-        '¬†FIDC': ' FIDC',
-        '¬†FIM': ' FIM',
-        '¬†FII': ' FII',
-        '¬†SUB': ' SUB',
-        '¬†HIGH': ' HIGH',
-        '¬†SB': ' SB',
-        '¬†MEZ': ' MEZ',
-    }
-    
-    # Combina todos os fixes
-    fixes.update(space_fixes)
     
     return fixes
 
