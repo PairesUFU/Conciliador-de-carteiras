@@ -125,6 +125,7 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': 0.0,
                     'Diferença': valor_carteira,
+                    'Numero de Registros': 0,
                     'Status': 'NÃO MAPEADO'
                 })
                 continue
@@ -154,7 +155,7 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 
                 # Se encontrou registros para este nome, somar os valores
                 if not balancete_matches.empty:
-                    nomes_encontrados.append(f"{nome_balancete} ({len(balancete_matches)} reg.)")
+                    nomes_encontrados.append(f"{nome_balancete}")
                     total_registros_encontrados += len(balancete_matches)
                     
                     for _, match_row in balancete_matches.iterrows():
@@ -175,10 +176,11 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
             if len(nomes_encontrados) == 0:
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
-                    'Nome Balancete': f"NÃO ENCONTRADO ({len(nomes_balancete)} nomes mapeados)",
+                    'Nome Balancete': f"NÃO ENCONTRADO", #({len(nomes_balancete)} nomes mapeados)",
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': 0.0,
                     'Diferença': valor_carteira,
+                    'Numero de Registros': 0,
                     'Status': 'NÃO MAPEADO'
                 })
             else:
@@ -198,7 +200,6 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                     nome_exibicao = f"MÚLTIPLOS: {', '.join(nomes_encontrados[:2])}"
                     if len(nomes_encontrados) > 2:
                         nome_exibicao += f" + {len(nomes_encontrados) - 2} outros"
-                    nome_exibicao += f" (Total: {total_registros_encontrados} reg.)"
                 
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
@@ -206,6 +207,7 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': saldo_total_balancete,
                     'Diferença': diferenca,
+                    'Numero de Registros': total_registros_encontrados,
                     'Status': status
                 })
         
