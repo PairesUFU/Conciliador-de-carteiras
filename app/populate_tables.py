@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 import random
 import time
+from encoding_utils import load_csv_with_encoding_fix
 
 POSTGRES_HOST = os.getenv("DB_HOST", "postgres")
 POSTGRES_DB = os.getenv("DB_NAME", "bautomation_db")
@@ -136,7 +137,7 @@ def load_funds_from_csv(engine, csv_path: str):
     CSV deve ter colunas: id, name, slug, government_id, is_active
     """
     try:
-        df = pd.read_csv(csv_path)
+        df = load_csv_with_encoding_fix(csv_path, encoding='cp1252')
         print(f"Carregando {len(df)} funds do arquivo {csv_path}")
         
         for _, row in df.iterrows():
@@ -160,7 +161,7 @@ def load_fund_quotas_from_csv(engine, csv_path: str):
     CSV deve ter colunas: id, fund_id, type, quota_name, wallet_external_id
     """
     try:
-        df = pd.read_csv(csv_path)
+        df = load_csv_with_encoding_fix(csv_path, encoding='cp1252')
         print(f"Carregando {len(df)} fund_quotas do arquivo {csv_path}")
         
         for _, row in df.iterrows():

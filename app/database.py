@@ -13,7 +13,6 @@ def get_database_url():
     
     return f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
-@st.cache_data
 def get_funds_list():
     """
     Busca a lista de fundos ativos do banco de dados
@@ -36,10 +35,9 @@ def get_funds_list():
         return funds
         
     except Exception as e:
-        st.error(f"Erro ao conectar com o banco de dados: {e}")
+        print(f"Erro ao conectar com o banco de dados: {e}")
         return []
 
-@st.cache_data
 def get_fund_info(fund_name: str):
     """
     Busca informações detalhadas de um fundo específico
@@ -69,7 +67,7 @@ def get_fund_info(fund_name: str):
             return None
             
     except Exception as e:
-        st.error(f"Erro ao buscar informações do fundo: {e}")
+        print(f"Erro ao buscar informações do fundo: {e}")
         return None
 
 def test_database_connection():
