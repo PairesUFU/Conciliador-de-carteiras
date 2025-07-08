@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 import random
+import time
 
 POSTGRES_HOST = os.getenv("DB_HOST", "postgres")
 POSTGRES_DB = os.getenv("DB_NAME", "bautomation_db")
@@ -10,6 +11,28 @@ POSTGRES_PASSWORD = os.getenv("DB_PASS", "admin123")
 DATABASE_URL = (
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}"
 )
+
+print(f"🔗 Conectando ao banco: {DATABASE_URL}")
+
+
+def wait_for_database():
+    """Aguarda o banco de dados ficar disponível"""
+    max_retries = 30
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            engine = create_engine(DATABASE_URL)
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            print("✅ Banco de dados está disponível!")
+            return True
+        except Exception as e:
+            retry_count += 1
+            print(f"⏳ Aguardando banco de dados... tentativa {retry_count}/{max_retries} - {e}")
+            time.sleep(2)
+    
+    raise Exception("❌ Não foi possível conectar ao banco de dados após 30 tentativas")
 
 
 def get_engine():
@@ -155,7 +178,7 @@ def load_fund_quotas_from_csv(engine, csv_path: str):
         print(f"Erro ao carregar fund_quotas do CSV: {e}")
 
 
-def populate_tables(engine, funds_csv_path: str = None, fund_quotas_csv_path: str = None):
+def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
     create_funds_table_if_not_exists(engine)
     create_fund_quotas_table_if_not_exists(engine)
     
@@ -167,14 +190,27 @@ def populate_tables(engine, funds_csv_path: str = None, fund_quotas_csv_path: st
 
 
 if __name__ == "__main__":
+    print("🚀 Iniciando população do banco de dados...")
+    
+    # Aguarda o banco ficar disponível
+    wait_for_database()
+    
     engine = get_engine()
     
-    funds_csv_path = "funds.csv" 
+    funds_csv_path = "funds.csv"  # Arquivo na mesma pasta do script
     
-    # Só popula funds.csv se ele existir
+    # Verifica se o arquivo funds.csv existe
+    print(f"📁 Verificando arquivo: {funds_csv_path}")
     if os.path.exists(funds_csv_path):
+        print(f"✅ Arquivo {funds_csv_path} encontrado!")
         populate_tables(engine, funds_csv_path, None)
-        print("Dados de funds carregados com sucesso!")
+        print("✅ Dados de funds carregados com sucesso!")
     else:
-        print(f"Arquivo {funds_csv_path} não encontrado. Criando apenas as tabelas...")
+        print(f"⚠️ Arquivo {funds_csv_path} não encontrado. Criando apenas as tabelas...")
+        # Vamos listar o que tem no diretório para debug
+        print(f"📋 Conteúdo do diretório /app/:")
+        for item in os.listdir("/app/"):
+            print(f"  - {item}")
         populate_tables(engine, None, None)
+    
+    print("🎉 População do banco de dados concluída!")
