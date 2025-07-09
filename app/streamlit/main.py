@@ -6,7 +6,6 @@ import os
 # Adiciona o diretório pai ao path para poder importar database
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import get_funds_list, get_fund_info, test_database_connection
 from pages.lancamento import lancamento
 from pages.carteira import carteira
 from pages.conciliador import conciliador
@@ -31,11 +30,6 @@ st.set_page_config(
 
 # Título principal
 st.title("🏦 Sistema Conciliador")
-
-# Testar conexão com banco de dados
-if not test_database_connection():
-    st.error("❌ Não foi possível conectar ao banco de dados. Verifique se o PostgreSQL está rodando.")
-    st.stop()
 
 st.divider()
 # Definir as páginas
