@@ -225,7 +225,40 @@ def fix_encoding_in_database(engine):
     except Exception as e:
         print(f"❌ Erro ao corrigir encoding no banco: {e}")
 
-
+def fix_encoding_fund_quotas(engine):
+    """
+    Corrige problemas de encoding na tabela fund_quotas
+    """
+    try:
+        with engine.begin() as connection:
+            # Busca registros da tabela fund_quotas
+            select_query = "SELECT id, type, quota_name FROM public.fund_quotas"
+            result = connection.execute(text(select_query))
+            records = result.fetchall()
+            
+            for record in records:
+                quota_id, type_field, quota_name = record
+                
+                # Aplica correções
+                corrected_type = fix_text_encoding(type_field) if type_field else type_field
+                corrected_quota_name = fix_text_encoding(quota_name) if quota_name else quota_name
+                
+                # Atualiza se necessário
+                if corrected_type != type_field or corrected_quota_name != quota_name:
+                    update_query = """
+                    UPDATE public.fund_quotas 
+                    SET type = :type, quota_name = :quota_name, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = :id
+                    """
+                    connection.execute(text(update_query), {
+                        "id": quota_id,
+                        "type": corrected_type,
+                        "quota_name": corrected_quota_name
+                    })
+    except Exception as e:
+        print(f"❌ Erro ao corrigir encoding em fund_quotas: {e}")
+        
+        
 def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
     create_funds_table_if_not_exists(engine)
     create_fund_quotas_table_if_not_exists(engine)
@@ -247,18 +280,42 @@ if __name__ == "__main__":
     
     engine = get_engine()
     
-    # Caminho para o arquivo CSV (relativo ao diretório do script)
+    # Caminho para os arquivos CSV (relativo ao diretório do script)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     funds_csv_path = os.path.join(current_dir, "funds.csv")
+    fund_quotas_csv_path = os.path.join(current_dir, "fund_quotas.csv")
     
-    # Verifica se o arquivo funds.csv existe
-    print(f"📁 Verificando arquivo: {funds_csv_path}")
-    if os.path.exists(funds_csv_path):
+    # Verifica quais arquivos CSV existem
+    print(f"📁 Verificando arquivos CSV...")
+    funds_exists = os.path.exists(funds_csv_path)
+    quotas_exists = os.path.exists(fund_quotas_csv_path)
+    
+    if funds_exists:
         print(f"✅ Arquivo {funds_csv_path} encontrado!")
-        populate_tables(engine, funds_csv_path, None)
-        print("✅ Dados de funds carregados com sucesso!")
     else:
-        print(f"⚠️ Arquivo {funds_csv_path} não encontrado. Criando apenas as tabelas...")
+        print(f"⚠️ Arquivo {funds_csv_path} não encontrado.")
+        
+    if quotas_exists:
+        print(f"✅ Arquivo {fund_quotas_csv_path} encontrado!")
+    else:
+        print(f"⚠️ Arquivo {fund_quotas_csv_path} não encontrado.")
+    
+    if funds_exists or quotas_exists:
+        populate_tables(
+            engine, 
+            funds_csv_path if funds_exists else None,
+            fund_quotas_csv_path if quotas_exists else None
+        )
+        
+        if funds_exists:
+            print("✅ Dados de funds carregados com sucesso!")
+        if quotas_exists:
+            print("✅ Dados de fund_quotas carregados com sucesso!")
+            # Aplica correções de encoding nas cotas também
+            fix_encoding_fund_quotas(engine)
+            print("✅ Correções de encoding aplicadas em fund_quotas!")
+    else:
+        print(f"⚠️ Nenhum arquivo CSV encontrado. Criando apenas as tabelas...")
         # Vamos listar o que tem no diretório para debug
         print(f"📋 Conteúdo do diretório {current_dir}:")
         for item in os.listdir(current_dir):
