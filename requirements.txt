@@ -2,6 +2,7 @@
 streamlit
 pandas
 openpyxl
+dotenv
 
 # Para conexão com PostgreSQL
 psycopg2-binary
