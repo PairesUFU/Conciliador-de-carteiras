@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copia requirements e instala dependências
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt && pip install python-dotenv
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o código da aplicação (que agora inclui o funds.csv)
 COPY app/ /app/
