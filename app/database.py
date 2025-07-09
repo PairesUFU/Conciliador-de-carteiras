@@ -70,16 +70,27 @@ def get_fund_info(fund_name: str):
         print(f"Erro ao buscar informações do fundo: {e}")
         return None
 
-def test_database_connection():
+
+def get_fund_quotas(fund_id: int):
     """
-    Testa a conexão com o banco de dados
+    Busca todas as cotas de um fundo específico
     """
     try:
         engine = create_engine(get_database_url())
         
+        query = """
+        SELECT id, type, quota_name, wallet_external_id 
+        FROM public.fund_quotas 
+        WHERE fund_id = :fund_id
+        ORDER BY type, quota_name
+        """
+        
         with engine.begin() as connection:
-            result = connection.execute(text("SELECT 1"))
-            return True
+            result = connection.execute(text(query), {"fund_id": fund_id})
+            quotas = result.fetchall()
             
+        return quotas
+        
     except Exception as e:
-        return False
+        print(f"Erro ao buscar cotas do fundo: {e}")
+        return []
