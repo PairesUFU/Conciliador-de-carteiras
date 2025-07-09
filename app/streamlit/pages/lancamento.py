@@ -4,10 +4,9 @@ import openpyxl
 import sys
 import os
 
-# Adiciona o diretório pai ao path para poder importar database
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from database import get_funds_list, get_fund_info
+# Adicionar o diretório pai da pasta streamlit ao path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database import get_funds_list, get_fund_info, get_fund_quotas
 
 # Página de lançamento de dados
 
@@ -47,6 +46,16 @@ def lancamento():
                     with col2:
                         st.write(f"**Slug:** {fund_info['slug']}")
                         st.write(f"**CNPJ:** {fund_info['government_id']}")
+                        
+                    st.subheader("📋 Cotas do Fundo")
+                    quotas = get_fund_quotas(fund_info["id"])
+
+                    if quotas:
+                        df_quotas = pd.DataFrame(quotas, columns=['ID', 'Tipo', 'Nome da Cota', 'wallet_external_id'])
+                        df_quotas = df_quotas.drop('ID', axis=1)
+                        st.dataframe(df_quotas, use_container_width=True)
+                    else:
+                        st.info("Nenhuma cota encontrada para este fundo.")
                 
                 # Salvar o fundo selecionado na session state para uso futuro se necessário
                 st.session_state.selected_fund = fund_info
