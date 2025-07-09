@@ -51,7 +51,7 @@ def lancamento():
                     quotas = get_fund_quotas(fund_info["id"])
 
                     if quotas:
-                        df_quotas = pd.DataFrame(quotas, columns=['ID', 'Tipo', 'Nome da Cota', 'ID Externo'])
+                        df_quotas = pd.DataFrame(quotas, columns=['ID', 'Tipo', 'Nome da Cota', 'wallet_external_id'])
                         st.dataframe(df_quotas, use_container_width=True)
                     else:
                         st.info("Nenhuma cota encontrada para este fundo.")
