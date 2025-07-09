@@ -255,15 +255,19 @@ def exibir_resultado_conciliacao(df_resultado):
     st.subheader("🔍 Filtrar por Status")
     status_filter = st.selectbox(
         "Selecione o status para filtrar:",
-        ["TODOS", "MAPEADOS", "CONCILIADO", "DIVERGENTE", "NÃO MAPEADO"]
+        ["TODOS", "MAPEADOS", "CONCILIADOS", "DIVERGENTES", "NÃO MAPEADOS"],
     )
     
     if status_filter == "TODOS":
         df_filtrado = df_resultado
     elif status_filter == "MAPEADOS":
         df_filtrado = df_resultado[df_resultado['Status'].isin(['CONCILIADO', 'DIVERGENTE'])]
-    else:
-        df_filtrado = df_resultado[df_resultado['Status'] == status_filter]
+    elif status_filter == "CONCILIADOS":
+        df_filtrado = df_resultado[df_resultado['Status'] == 'CONCILIADO']
+    elif status_filter == "DIVERGENTES":
+        df_filtrado = df_resultado[df_resultado['Status'] == 'DIVERGENTE']
+    elif status_filter == "NÃO MAPEADOS":
+        df_filtrado = df_resultado[df_resultado['Status'] == 'NÃO MAPEADO']
     
     # Formatação da tabela para exibição
     df_display = df_filtrado.copy()
@@ -287,7 +291,6 @@ def exibir_resultado_conciliacao(df_resultado):
         use_container_width=True,
         hide_index=True
     )
-
 
 # Função para ser chamada pelo main.py
 if __name__ == "__main__":
