@@ -63,53 +63,96 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
         df_mapeamento = df_mapeamento.iloc[::-1].reset_index(drop=True)
         
         # Verificar se o mapeamento tem as colunas necessárias
-        colunas_necessarias = ['Nome Balancete', 'Ativo Carteira']
+        colunas_necessarias = ['Conta', 'Ativo Carteira']
 
         # Coloca em minúsculas para facilitar a comparação e salva todas as colunas na variável 
         colunas_mapeamento = [col.lower() for col in df_mapeamento.columns]
         
         # Tentar encontrar as colunas com diferentes variações de nome
-        nome_balancete_col = None
+        conta_balancete_col = None
         ativo_carteira_col = None
         
         # Roda cada coluna do mapeamento e salva em col_lower para verificar se contém as palavras-chave necessárias
         for col in df_mapeamento.columns:
             col_lower = col.lower()
-            if 'nome' in col_lower and 'balancete' in col_lower:
-                nome_balancete_col = col
+            if 'conta' in col_lower:
+                conta_balancete_col = col
             elif 'ativo' in col_lower and 'carteira' in col_lower:
                 ativo_carteira_col = col
         
-        if nome_balancete_col is None or ativo_carteira_col is None:
+        if conta_balancete_col is None or ativo_carteira_col is None:
             st.error("❌ Mapeamento não contém as colunas necessárias:")
-            st.error("Colunas necessárias: 'Nome Balancete' e 'Ativo Carteira'")
+            st.error("Colunas necessárias: 'Conta' e 'Ativo Carteira'")
             return None
         
-        # Criar dicionário agrupado: ativo_carteira -> [lista de nomes do balancete]
-        # Um ativo da carteira pode ter vários nomes correspondentes no balancete
+        # Criar dicionário agrupado: ativo_carteira -> [lista de contas do balancete]
         mapeamento_agrupado = {}
         for i, row in df_mapeamento.iterrows():
-            nome_bal = row[nome_balancete_col]
+            conta_bal = row[conta_balancete_col]
             ativo_cart = row[ativo_carteira_col]
             
             # Verificar se ambos os valores são válidos
-            if pd.notna(nome_bal) and pd.notna(ativo_cart) and str(nome_bal).strip() != '' and str(ativo_cart).strip() != '':
+            if pd.notna(conta_bal) and pd.notna(ativo_cart) and str(conta_bal).strip() != '' and str(ativo_cart).strip() != '':
                 ativo_limpo = str(ativo_cart).strip()
-                nome_bal_limpo = str(nome_bal).strip()
+                conta_bal_limpo = str(conta_bal).strip()
                 
                 if ativo_limpo not in mapeamento_agrupado:
                     mapeamento_agrupado[ativo_limpo] = []
                 
                 # Evitar duplicatas
-                if nome_bal_limpo not in mapeamento_agrupado[ativo_limpo]:
-                    mapeamento_agrupado[ativo_limpo].append(nome_bal_limpo)
+                if conta_bal_limpo not in mapeamento_agrupado[ativo_limpo]:
+                    mapeamento_agrupado[ativo_limpo].append(conta_bal_limpo)
         
         # Preparar dados para conciliação
         resultados = []
         
-        # Criar uma versão do balancete com nomes normalizados para busca case-insensitive
+        # Detectar qual coluna de conta usar no balancete
+        conta_col_balancete = None
+        if 'Conta' in df_balancete.columns:
+            conta_col_balancete = 'Conta'
+        elif 'Nome' in df_balancete.columns:
+            conta_col_balancete = 'Nome'
+        else:
+            st.error("❌ Balancete não contém coluna 'Conta' nem 'Nome'")
+            st.info(f"Colunas disponíveis no balancete: {list(df_balancete.columns)}")
+            return None
+        
+        # Detectar qual coluna de saldo usar no balancete
+        saldo_col_balancete = None
+        if 'SldAtu' in df_balancete.columns:
+            saldo_col_balancete = 'SldAtu'
+        elif 'SldAnt' in df_balancete.columns:
+            saldo_col_balancete = 'SldAnt'
+        else:
+            st.error("❌ Balancete não contém coluna 'SldAtu' nem 'SldAnt'")
+            st.info(f"Colunas disponíveis no balancete: {list(df_balancete.columns)}")
+            return None
+        
+        # Mostrar quais colunas estão sendo usadas
+        st.info(f"📋 Usando coluna '{conta_col_balancete}' para contas e '{saldo_col_balancete}' para saldos")
+        
+        # Criar uma versão do balancete com contas normalizadas para busca
         df_balancete_normalizado = df_balancete.copy()
-        df_balancete_normalizado['Nome_Normalizado'] = df_balancete_normalizado['Nome'].astype(str).str.strip().str.upper()
+        
+        # Função para normalizar números (tanto do mapeamento quanto do balancete)
+        def normalizar_conta(conta):
+            if pd.isna(conta):
+                return ''
+            conta_str = str(conta).strip()
+            # Converter vírgula para ponto para padronizar
+            conta_str = conta_str.replace(',', '.')
+            # Tentar converter para float e depois para int se for número inteiro
+            try:
+                conta_float = float(conta_str)
+                if conta_float.is_integer():
+                    return str(int(conta_float))
+                else:
+                    return str(conta_float)
+            except ValueError:
+                return conta_str
+        
+        # Normalizar as contas do balancete
+        df_balancete_normalizado['Conta_Normalizado'] = df_balancete_normalizado[conta_col_balancete].apply(normalizar_conta)
         
         # Iterar pelos itens da carteira
         for i, (_, row_carteira) in enumerate(df_carteira.iterrows()):
@@ -121,7 +164,7 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 # Ativo da carteira não encontrado no mapeamento
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
-                    'Nome Balancete': 'NÃO MAPEADO',
+                    'Conta Balancete': 'NÃO MAPEADO',
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': 0.0,
                     'Diferença': valor_carteira,
@@ -131,35 +174,29 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 continue
             
             # Obter todos os nomes do balancete que correspondem a este ativo da carteira
-            nomes_balancete = mapeamento_agrupado[ativo_carteira]
+            contas_balancete = mapeamento_agrupado[ativo_carteira]
             
             # Buscar e somar TODOS os registros no balancete para TODOS os nomes mapeados
             saldo_total_balancete = 0.0
-            nomes_encontrados = []
+            contas_encontrados = []
             total_registros_encontrados = 0
             
-            for nome_balancete in nomes_balancete:
-                # Normalizar o nome do balancete para busca case-insensitive
-                nome_balancete_normalizado = str(nome_balancete).strip().upper()
+            for conta_balancete in contas_balancete:
+                # Normalizar a conta do mapeamento da mesma forma que o balancete
+                conta_balancete_normalizado = normalizar_conta(conta_balancete)
                 
-                # Procurar TODOS os registros no balancete com este nome (case-insensitive)
+                # Procurar TODOS os registros no balancete com esta conta (busca exata apenas)
                 balancete_matches = df_balancete_normalizado[
-                    df_balancete_normalizado['Nome_Normalizado'] == nome_balancete_normalizado
+                    df_balancete_normalizado['Conta_Normalizado'] == conta_balancete_normalizado
                 ]
                 
-                # Se não encontrou com busca exata, tentar busca parcial (contains)
-                if balancete_matches.empty:
-                    balancete_matches = df_balancete_normalizado[
-                        df_balancete_normalizado['Nome_Normalizado'].str.contains(nome_balancete_normalizado, na=False, regex=False)
-                    ]
-                
-                # Se encontrou registros para este nome, somar os valores
+                # Se encontrou registros para esta conta, somar os valores
                 if not balancete_matches.empty:
-                    nomes_encontrados.append(f"{nome_balancete}")
+                    contas_encontrados.append(f"{conta_balancete}")
                     total_registros_encontrados += len(balancete_matches)
                     
                     for _, match_row in balancete_matches.iterrows():
-                        saldo_atual = match_row['SldAtu']
+                        saldo_atual = match_row[saldo_col_balancete]
                         
                         # Verificar se o valor é válido (não é NaN ou None)
                         if pd.isna(saldo_atual):
@@ -173,10 +210,10 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                             continue  # Pular valores inválidos
             
             # Se não encontrou nenhum nome no balancete
-            if len(nomes_encontrados) == 0:
+            if len(contas_encontrados) == 0:
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
-                    'Nome Balancete': f"NÃO ENCONTRADO", #({len(nomes_balancete)} nomes mapeados)",
+                    'Conta Balancete': f"NÃO ENCONTRADO", #({len(contas_balancete)} nomes mapeados)",
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': 0.0,
                     'Diferença': valor_carteira,
@@ -194,16 +231,16 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                     status = 'DIVERGENTE'
                 
                 # Criar descrição dos nomes encontrados
-                if len(nomes_encontrados) == 1:
-                    nome_exibicao = nomes_encontrados[0]
+                if len(contas_encontrados) == 1:
+                    conta_exibicao = contas_encontrados[0]
                 else:
-                    nome_exibicao = f"MÚLTIPLOS: {', '.join(nomes_encontrados[:2])}"
-                    if len(nomes_encontrados) > 2:
-                        nome_exibicao += f" + {len(nomes_encontrados) - 2} outros"
+                    conta_exibicao = f"MÚLTIPLOS: {', '.join(contas_encontrados[:2])}"
+                    if len(contas_encontrados) > 2:
+                        conta_exibicao += f" + {len(contas_encontrados) - 2} outros"
                 
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
-                    'Nome Balancete': nome_exibicao,
+                    'Conta Balancete': conta_exibicao,
                     'Valor Carteira': valor_carteira,
                     'Saldo Balancete': saldo_total_balancete,
                     'Diferença': diferenca,
@@ -282,9 +319,9 @@ def exibir_resultado_conciliacao(df_resultado):
         elif row['Status'] == 'DIVERGENTE':
             return ['background-color: #FF1616'] * len(row)
         elif row['Status'] == 'NÃO MAPEADO':
-            return ['background-color: #FFEA33'] * len(row)
+            return ['background-color: #FFB74D'] * len(row)
         else:
-            return ['background-color: #FFEA33'] * len(row)
+            return ['background-color: #FFB74D'] * len(row)
     
     st.dataframe(
         df_display.style.apply(colorir_status, axis=1),

@@ -201,9 +201,9 @@ def _process_carteira_file(carteira_file):
             st.error("Arquivo deve ter pelo menos 2 linhas (dados + header).")
             return None
         
-        # O header está na penúltima linha
-        header_line = lines[-2]
-        data_lines = lines[:-2]  # Todas as linhas exceto as duas últimas
+        # O header está na última linha
+        header_line = lines[-1]
+        data_lines = lines[:-1]  # Todas as linhas exceto a última
         
         # Dividir o header usando o separador
         columns = [col.strip() for col in header_line.split(separator)]
