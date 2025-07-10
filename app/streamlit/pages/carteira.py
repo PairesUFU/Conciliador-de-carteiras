@@ -18,7 +18,7 @@ def carteira():
         uploaded_file = st.file_uploader(
             "Faça upload do arquivo CSV da carteira",
             type=['csv'],
-            help="O arquivo deve conter as colunas 'Titulo' (nome do ativo) e 'VlMrc' (valor). Header na penúltima linha. Usar sempre latin-1 e separador ';'"
+            help="O arquivo deve conter as colunas 'Titulo' (nome do ativo) e 'VlMrc' (valor). Header na penúltima linha. Usar sempre iso-8859-15 e separador ';'"
         )
         
         if uploaded_file is not None:
@@ -67,7 +67,7 @@ def carteira():
                 
             except Exception as e:
                 st.error(f"❌ Erro ao processar o arquivo: {str(e)}")
-                st.info("Verifique se o arquivo está no formato correto (CSV com encoding latin-1 e separador ';') e contém as colunas 'Titulo' e 'VlMrc'")
+                st.info("Verifique se o arquivo está no formato correto (CSV com encoding iso-8859-15 e separador ';') e contém as colunas 'Titulo' e 'VlMrc'")
     
     else:
         # Dados de exemplo (código existente)
@@ -180,8 +180,8 @@ def _process_carteira_file(carteira_file):
     Retorna: (df_carteira_dados, total_registros_antes)
     """
     try:
-        # Usar sempre latin-1 e separador ';'
-        encoding = 'latin-1'
+        # Usar sempre iso-8859-15 (latin-9) e separador ';'
+        encoding = 'iso-8859-15'
         separator = ';'
         
         # Reset do ponteiro do arquivo para o início

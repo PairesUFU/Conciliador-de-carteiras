@@ -141,8 +141,8 @@ def lancamento():
     
 def _process_balancete_file(balancete_file):
     try:
-        # Usar sempre latin-1 e separador ';'
-        encoding = 'latin-1'
+        # Usar Latin-9 (ISO-8859-15) para melhor suporte a caracteres acentuados
+        encoding = 'iso-8859-15'
         separator = ';'
         
         # Reset do ponteiro do arquivo para o início
@@ -231,7 +231,7 @@ def _process_balancete_file(balancete_file):
         # Mostrar preview do arquivo raw para debug
         try:
             balancete_file.seek(0)
-            raw_content = balancete_file.read(1000).decode('latin-1', errors='ignore')
+            raw_content = balancete_file.read(1000).decode('iso-8859-15', errors='ignore')
             st.text_area("Primeiras linhas do arquivo (para debug):", raw_content, height=200)
         except:
             pass

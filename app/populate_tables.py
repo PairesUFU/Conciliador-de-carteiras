@@ -3,7 +3,6 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 import random
 import time
-from encoding_utils import fix_text_encoding
 
 POSTGRES_HOST = os.getenv("DB_HOST", "postgres")
 POSTGRES_DB = os.getenv("DB_NAME", "bautomation_db")
@@ -193,41 +192,15 @@ def fix_encoding_in_database(engine):
             result = connection.execute(text(select_query))
             records = result.fetchall()
             
-            corrections_count = 0
-            
-            for record in records:
-                fund_id, name, slug = record
-                
-                # Aplica correções nos campos de texto
-                corrected_name = fix_text_encoding(name) if name else name
-                corrected_slug = fix_text_encoding(slug) if slug else slug
-                
-                # Verifica se houve mudanças
-                if corrected_name != name or corrected_slug != slug:
-                    corrections_count += 1
-                    
-                    # Atualiza o registro no banco
-                    update_query = """
-                    UPDATE public.funds 
-                    SET name = :name, slug = :slug, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = :id
-                    """
-                    connection.execute(text(update_query), {
-                        "id": fund_id,
-                        "name": corrected_name,
-                        "slug": corrected_slug
-                    })
-                    
-                    print(f"   ✅ ID {fund_id}: '{name}' → '{corrected_name}'")
-            
-            print(f"🎉 Correções aplicadas: {corrections_count} registros corrigidos!")
+            print(f"   ✅ Encontrados {len(records)} registros na tabela funds")
+            print(f"   ℹ️  Correções de encoding não são mais necessárias (arquivos lidos com encoding correto)")
             
     except Exception as e:
-        print(f"❌ Erro ao corrigir encoding no banco: {e}")
+        print(f"❌ Erro ao verificar encoding no banco: {e}")
 
 def fix_encoding_fund_quotas(engine):
     """
-    Corrige problemas de encoding na tabela fund_quotas
+    Verifica registros na tabela fund_quotas (correções de encoding não são mais necessárias)
     """
     try:
         with engine.begin() as connection:
@@ -236,27 +209,11 @@ def fix_encoding_fund_quotas(engine):
             result = connection.execute(text(select_query))
             records = result.fetchall()
             
-            for record in records:
-                quota_id, type_field, quota_name = record
-                
-                # Aplica correções
-                corrected_type = fix_text_encoding(type_field) if type_field else type_field
-                corrected_quota_name = fix_text_encoding(quota_name) if quota_name else quota_name
-                
-                # Atualiza se necessário
-                if corrected_type != type_field or corrected_quota_name != quota_name:
-                    update_query = """
-                    UPDATE public.fund_quotas 
-                    SET type = :type, quota_name = :quota_name, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = :id
-                    """
-                    connection.execute(text(update_query), {
-                        "id": quota_id,
-                        "type": corrected_type,
-                        "quota_name": corrected_quota_name
-                    })
+            print(f"   ✅ Encontrados {len(records)} registros na tabela fund_quotas")
+            print(f"   ℹ️  Correções de encoding não são mais necessárias (arquivos lidos com encoding correto)")
+            
     except Exception as e:
-        print(f"❌ Erro ao corrigir encoding em fund_quotas: {e}")
+        print(f"❌ Erro ao verificar encoding em fund_quotas: {e}")
         
         
 def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
