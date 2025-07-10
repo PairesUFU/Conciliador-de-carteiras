@@ -141,8 +141,8 @@ def lancamento():
     
 def _process_balancete_file(balancete_file):
     try:
-        # Usar sempre latin-1 e separador ';'
-        encoding = 'latin-1'
+        # Usar Latin-9 (ISO-8859-15) para melhor suporte a caracteres acentuados
+        encoding = 'iso-8859-15'
         separator = ';'
         
         # Reset do ponteiro do arquivo para o início
@@ -181,32 +181,45 @@ def _process_balancete_file(balancete_file):
         # Criar DataFrame
         df = pd.DataFrame(data_rows, columns=columns)
         
-        # Converter a coluna SldAtu para numérico
+        # Converter a coluna SldAnt para numérico (se existir)
+        if 'SldAnt' in df.columns:
+            # Limpar e converter valores numéricos
+            df['SldAnt'] = df['SldAnt'].str.replace('.', '', regex=False)  # Remover separador de milhares
+            df['SldAnt'] = df['SldAnt'].str.replace(',', '.', regex=False)  # Converter separador decimal
+            df['SldAnt'] = pd.to_numeric(df['SldAnt'], errors='coerce').fillna(0.0)
+        
+        # Converter a coluna SldAtu para numérico (se existir)
         if 'SldAtu' in df.columns:
             # Limpar e converter valores numéricos
             df['SldAtu'] = df['SldAtu'].str.replace('.', '', regex=False)  # Remover separador de milhares
             df['SldAtu'] = df['SldAtu'].str.replace(',', '.', regex=False)  # Converter separador decimal
             df['SldAtu'] = pd.to_numeric(df['SldAtu'], errors='coerce').fillna(0.0)
         
-        # Verificar colunas obrigatórias
-        required_columns = {"Nome", "SldAtu"}
+        # Verificar colunas obrigatórias (pelo menos uma das opções deve existir)
+        required_columns_conta = {"Conta", "Nome"}  # Pelo menos uma dessas
+        required_columns_saldo = {"SldAnt", "SldAtu"}  # Pelo menos uma dessas
         
         # Converter nomes das colunas para strings e remover espaços extras
         df.columns = df.columns.str.strip()
         df_columns = set(str(col) for col in df.columns)
         
-        # Verificar se as colunas obrigatórias existem no DataFrame
-        missing_columns = required_columns - df_columns
-        if missing_columns:
-            st.error(f"O arquivo não contém as seguintes colunas obrigatórias: {missing_columns}")
-            
-            # Sugerir colunas similares
-            for missing_col in missing_columns:
-                similar_cols = [col for col in df.columns if missing_col.lower() in col.lower()]
-                if similar_cols:
-                    st.info(f"Colunas similares a '{missing_col}' encontradas: {similar_cols}")
-            
+        # Verificar se pelo menos uma coluna de conta existe
+        conta_cols_found = required_columns_conta.intersection(df_columns)
+        if not conta_cols_found:
+            st.error(f"O arquivo deve conter pelo menos uma das seguintes colunas de conta: {required_columns_conta}")
+            st.info(f"Colunas encontradas: {list(df.columns)}")
             return None
+        
+        # Verificar se pelo menos uma coluna de saldo existe
+        saldo_cols_found = required_columns_saldo.intersection(df_columns)
+        if not saldo_cols_found:
+            st.error(f"O arquivo deve conter pelo menos uma das seguintes colunas de saldo: {required_columns_saldo}")
+            st.info(f"Colunas encontradas: {list(df.columns)}")
+            return None
+        
+        # Mostrar quais colunas foram encontradas
+        st.success(f"✅ Colunas de conta encontradas: {conta_cols_found}")
+        st.success(f"✅ Colunas de saldo encontradas: {saldo_cols_found}")
         
         return df
         
@@ -218,7 +231,7 @@ def _process_balancete_file(balancete_file):
         # Mostrar preview do arquivo raw para debug
         try:
             balancete_file.seek(0)
-            raw_content = balancete_file.read(1000).decode('latin-1', errors='ignore')
+            raw_content = balancete_file.read(1000).decode('iso-8859-15', errors='ignore')
             st.text_area("Primeiras linhas do arquivo (para debug):", raw_content, height=200)
         except:
             pass
