@@ -241,8 +241,8 @@ def realizar_conciliacao(df_carteira, df_balancete, df_mapeamento):
                 resultados.append({
                     'Ativo Carteira': ativo_carteira,
                     'Conta Balancete': conta_exibicao,
-                    'Valor Carteira': valor_carteira,
                     'Saldo Balancete': saldo_total_balancete,
+                    'Valor Carteira': valor_carteira,
                     'Diferença': diferenca,
                     'Numero de Registros': total_registros_encontrados,
                     'Status': status
