@@ -204,9 +204,9 @@ def fix_encoding_in_database(engine):
             # Corrige caracteres problemáticos conhecidos
             update_query = """
             UPDATE public.funds SET 
-                name = REPLACE(REPLACE(REPLACE(REPLACE(name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
+                name = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'), 'âˆšÃ…', 'Á'),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE name LIKE '%â¬â€%' OR name LIKE '%Â¬â€%' OR name LIKE '%âˆ�%' OR name LIKE '%√ì%'
+            WHERE name LIKE '%â¬â€%' OR name LIKE '%Â¬â€%' OR name LIKE '%âˆ�%' OR name LIKE '%√ì%' OR name LIKE '%âˆšÃ…%'
             """
             result = connection.execute(text(update_query))
             rows_affected = result.rowcount
@@ -230,11 +230,11 @@ def fix_encoding_fund_quotas(engine):
             # Corrige caracteres problemáticos conhecidos
             update_query = """
             UPDATE public.fund_quotas SET 
-                quota_name = REPLACE(REPLACE(REPLACE(REPLACE(quota_name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
-                type = REPLACE(REPLACE(REPLACE(REPLACE(type, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
+                quota_name = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(quota_name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'), 'âˆšÃ…', 'Á'), 'Sâˆšâ„¢nior', 'Sênior'),
+                type = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(type, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'), 'âˆšÃ…', 'Á'), 'Sâˆšâ„¢nior', 'Sênior'),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE quota_name LIKE '%â¬â€%' OR quota_name LIKE '%Â¬â€%' OR quota_name LIKE '%âˆ�%' OR quota_name LIKE '%√ì%'
-               OR type LIKE '%â¬â€%' OR type LIKE '%Â¬â€%' OR type LIKE '%âˆ�%' OR type LIKE '%√ì%'
+            WHERE quota_name LIKE '%â¬â€%' OR quota_name LIKE '%Â¬â€%' OR quota_name LIKE '%âˆ�%' OR quota_name LIKE '%√ì%' OR quota_name LIKE '%âˆšÃ…%' OR quota_name LIKE '%Sâˆšâ„¢nior%'
+               OR type LIKE '%â¬â€%' OR type LIKE '%Â¬â€%' OR type LIKE '%âˆ�%' OR type LIKE '%√ì%' OR type LIKE '%âˆšÃ…%' OR type LIKE '%Sâˆšâ„¢nior%'
             """
             result = connection.execute(text(update_query))
             rows_affected = result.rowcount
