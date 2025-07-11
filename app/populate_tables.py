@@ -4,12 +4,13 @@ from sqlalchemy import create_engine, text
 import random
 import time
 
-POSTGRES_HOST = os.getenv("DB_HOST", "postgres")
+POSTGRES_HOST = os.getenv("DB_HOST", "localhost")
 POSTGRES_DB = os.getenv("DB_NAME", "bautomation_db")
 POSTGRES_USER = os.getenv("DB_USER", "bautomation_user")
 POSTGRES_PASSWORD = os.getenv("DB_PASS", "admin123")
+POSTGRES_PORT = os.getenv("DB_PORT", "5432")
 DATABASE_URL = (
-    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}"
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 )
 
 print(f"🔗 Conectando ao banco: {DATABASE_URL}")
@@ -195,39 +196,56 @@ def load_fund_quotas_from_csv(engine, csv_path: str):
 def fix_encoding_in_database(engine):
     """
     Corrige problemas de encoding diretamente no banco de dados
-    Aplica correções em todas as colunas de texto da tabela funds
     """
     print("🔧 Aplicando correções de encoding no banco de dados...")
     
     try:
         with engine.begin() as connection:
-            # Busca todos os registros da tabela funds
-            select_query = "SELECT id, name, slug FROM public.funds"
-            result = connection.execute(text(select_query))
-            records = result.fetchall()
+            # Corrige caracteres problemáticos conhecidos
+            update_query = """
+            UPDATE public.funds SET 
+                name = REPLACE(REPLACE(REPLACE(REPLACE(name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE name LIKE '%â¬â€%' OR name LIKE '%Â¬â€%' OR name LIKE '%âˆ�%' OR name LIKE '%√ì%'
+            """
+            result = connection.execute(text(update_query))
+            rows_affected = result.rowcount
             
-            print(f"   ✅ Encontrados {len(records)} registros na tabela funds")
-            print(f"   ℹ️  Correções de encoding não são mais necessárias (arquivos lidos com encoding correto)")
+            if rows_affected > 0:
+                print(f"   ✅ {rows_affected} registros corrigidos na tabela funds")
+            else:
+                print(f"   ℹ️  Nenhum problema de encoding encontrado na tabela funds")
             
     except Exception as e:
-        print(f"❌ Erro ao verificar encoding no banco: {e}")
+        print(f"❌ Erro ao corrigir encoding no banco: {e}")
 
 def fix_encoding_fund_quotas(engine):
     """
-    Verifica registros na tabela fund_quotas (correções de encoding não são mais necessárias)
+    Corrige problemas de encoding na tabela fund_quotas
     """
+    print("🔧 Aplicando correções de encoding na tabela fund_quotas...")
+    
     try:
         with engine.begin() as connection:
-            # Busca registros da tabela fund_quotas
-            select_query = "SELECT id, type, quota_name FROM public.fund_quotas"
-            result = connection.execute(text(select_query))
-            records = result.fetchall()
+            # Corrige caracteres problemáticos conhecidos
+            update_query = """
+            UPDATE public.fund_quotas SET 
+                quota_name = REPLACE(REPLACE(REPLACE(REPLACE(quota_name, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
+                type = REPLACE(REPLACE(REPLACE(REPLACE(type, 'â¬â€', ' '), 'Â¬â€', ' '), 'âˆ�', 'Ó'), '√ì', 'Ó'),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE quota_name LIKE '%â¬â€%' OR quota_name LIKE '%Â¬â€%' OR quota_name LIKE '%âˆ�%' OR quota_name LIKE '%√ì%'
+               OR type LIKE '%â¬â€%' OR type LIKE '%Â¬â€%' OR type LIKE '%âˆ�%' OR type LIKE '%√ì%'
+            """
+            result = connection.execute(text(update_query))
+            rows_affected = result.rowcount
             
-            print(f"   ✅ Encontrados {len(records)} registros na tabela fund_quotas")
-            print(f"   ℹ️  Correções de encoding não são mais necessárias (arquivos lidos com encoding correto)")
+            if rows_affected > 0:
+                print(f"   ✅ {rows_affected} registros corrigidos na tabela fund_quotas")
+            else:
+                print(f"   ℹ️  Nenhum problema de encoding encontrado na tabela fund_quotas")
             
     except Exception as e:
-        print(f"❌ Erro ao verificar encoding em fund_quotas: {e}")
+        print(f"❌ Erro ao corrigir encoding em fund_quotas: {e}")
         
         
 def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
@@ -242,6 +260,24 @@ def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_p
     
     if fund_quotas_csv_path and os.path.exists(fund_quotas_csv_path):
         load_fund_quotas_from_csv(engine, fund_quotas_csv_path)
+
+
+def fix_database_encoding_only():
+    """
+    Executa apenas as correções de encoding no banco existente
+    """
+    print("🔧 Executando correções de encoding no banco de dados...")
+    
+    # Aguarda o banco ficar disponível
+    wait_for_database()
+    
+    engine = get_engine()
+    
+    # Aplica as correções
+    fix_encoding_in_database(engine)
+    fix_encoding_fund_quotas(engine)
+    
+    print("✅ Correções de encoding concluídas!")
 
 
 if __name__ == "__main__":
