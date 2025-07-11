@@ -6,7 +6,7 @@ import os
 
 # Adicionar o diretório pai da pasta streamlit ao path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database import get_funds_list, get_fund_info, get_fund_quotas
+from database import get_funds_list, get_fund_info, get_fund_quotas, save_mapping_to_db, get_mappings_by_fund, load_mapping_from_db, check_mapping_exists, delete_mapping_from_db, delete_all_mappings_from_fund
 
 # Página de lançamento de dados
 
@@ -79,13 +79,250 @@ def lancamento():
     
     with col2:
         st.subheader("🗺️ Mapeamento")
-        mapeamento_file = st.file_uploader(
-            "Carregar arquivo Excel (.xlsx) do mapeamento",
-            type=["xlsx"],
-            help="Selecione um arquivo Excel no formato .xlsx (máximo 500MB)",
-            key="mapeamento_uploader"
-        )
-    
+        
+        # Só mostrar opções de mapeamento se um fundo foi selecionado
+        if selected_fund and selected_fund != "Selecione um fundo..." and st.session_state.get('selected_fund'):
+            fund_id = st.session_state.selected_fund['id']
+            
+            # Radio button para escolher opção de mapeamento
+            opcao_mapeamento = st.radio(
+                "Escolha uma opção para o mapeamento:",
+                ["Upload de arquivo Excel", "Usar mapeamento salvo no banco"],
+                index=0,
+                key="opcao_mapeamento"
+            )
+            
+            if opcao_mapeamento == "Upload de arquivo Excel":
+                # Upload do arquivo Excel
+                mapeamento_file = st.file_uploader(
+                    "Carregar arquivo Excel (.xlsx) do mapeamento",
+                    type=["xlsx"],
+                    help="Selecione um arquivo Excel no formato .xlsx (máximo 500MB)",
+                    key="mapeamento_uploader"
+                )
+                
+                # Processar arquivo do mapeamento
+                if mapeamento_file is not None:
+                    try:
+                        # Processar o arquivo
+                        df_mapeamento = _process_mapeamento_file(mapeamento_file)
+                        
+                        if df_mapeamento is not None:
+                            # Salvar no session state
+                            st.session_state['df_mapeamento'] = df_mapeamento
+                            st.success("✅ Mapeamento processado com sucesso!")
+                            
+                            # Opção para salvar no banco
+                            with st.expander("💾 Salvar Mapeamento no Banco de Dados", expanded=True):
+                                # Gerar nome padrão apenas uma vez
+                                if 'default_mapping_name' not in st.session_state:
+                                    timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+                                    # Limpar nome do arquivo (remover extensão e caracteres problemáticos)
+                                    clean_filename = mapeamento_file.name.replace('.xlsx', '').replace('.xls', '')
+                                    clean_filename = ''.join(c for c in clean_filename if c.isalnum() or c in '-_')
+                                    st.session_state['default_mapping_name'] = f"Mapeamento_{clean_filename}_{timestamp}"
+                                
+                                # Nome para o mapeamento
+                                nome_mapeamento = st.text_input(
+                                    "Nome para salvar o mapeamento:",
+                                    value=st.session_state.get('default_mapping_name', ''),
+                                    help="Escolha um nome único para identificar este mapeamento",
+                                    key="mapping_name_input"
+                                )
+                                
+                                col_save1, col_save2 = st.columns([1, 2])
+                                with col_save1:
+                                    if st.button("💾 Salvar no Banco", type="primary", key="save_mapping_btn"):
+                                        if nome_mapeamento.strip():
+                                            # Verificar se já existe
+                                            exists = check_mapping_exists(fund_id, nome_mapeamento.strip())
+                                            if exists:
+                                                st.warning("⚠️ Já existe um mapeamento com este nome. Será atualizado.")
+                                            
+                                            # Salvar no banco
+                                            mapping_id = save_mapping_to_db(
+                                                fund_id=fund_id,
+                                                mapping_df=df_mapeamento,
+                                                name=nome_mapeamento.strip(),
+                                                filename=mapeamento_file.name,
+                                                sheet_name=st.session_state.get('selected_sheet_name', '')
+                                            )
+                                            
+                                            if mapping_id:
+                                                st.success(f"✅ Mapeamento salvo no banco com ID: {mapping_id}")
+                                                # Limpar o nome padrão para próximo upload
+                                                if 'default_mapping_name' in st.session_state:
+                                                    del st.session_state['default_mapping_name']
+                                                # Force refresh da lista de mapeamentos
+                                                if 'cached_mappings' in st.session_state:
+                                                    del st.session_state['cached_mappings']
+                                            else:
+                                                st.error("❌ Erro ao salvar mapeamento no banco")
+                                        else:
+                                            st.error("❌ Nome do mapeamento não pode estar vazio")
+                                
+                                with col_save2:
+                                    st.info("💡 O mapeamento ficará disponível para reutilização neste fundo")
+                        else:
+                            st.error("Erro ao processar o arquivo do mapeamento.")
+                            
+                    except Exception as e:
+                        st.error(f"Erro ao carregar o arquivo do mapeamento: {str(e)}")
+                        st.error("Tente recarregar a página e enviar o arquivo novamente.")
+            
+            else:  # Usar mapeamento salvo no banco
+                st.info("📋 Mapeamentos salvos para este fundo:")
+                
+                # Buscar mapeamentos do fundo (usar cache para melhor performance)
+                cache_key = f"mappings_{fund_id}"
+                if cache_key not in st.session_state or st.button("🔄 Atualizar Lista", key="refresh_mappings"):
+                    mappings = get_mappings_by_fund(fund_id)
+                    st.session_state[cache_key] = mappings
+                else:
+                    mappings = st.session_state[cache_key]
+                
+                if mappings:
+                    # Criar opções para o selectbox
+                    mapping_options = ["Selecione um mapeamento..."] + [
+                        f"{m['name']} (criado em {m['created_at'].strftime('%d/%m/%Y %H:%M')})" 
+                        for m in mappings
+                    ]
+                    
+                    selected_mapping_option = st.selectbox(
+                        "Escolha o mapeamento:",
+                        mapping_options,
+                        key="mapping_selector"
+                    )
+                    
+                    if selected_mapping_option != "Selecione um mapeamento...":
+                        # Encontrar o mapeamento selecionado
+                        selected_index = mapping_options.index(selected_mapping_option) - 1
+                        selected_mapping = mappings[selected_index]
+                        
+                        # Botões para carregar e excluir
+                        col_load, col_delete = st.columns([2, 1])
+                        
+                        with col_load:
+                            if st.button(f"📥 Carregar '{selected_mapping['name']}'", key="load_mapping_btn"):
+                                # Carregar mapeamento do banco
+                                df_mapeamento, mapping_name = load_mapping_from_db(selected_mapping['id'])
+                                
+                                if df_mapeamento is not None:
+                                    # Salvar no session state
+                                    st.session_state['df_mapeamento'] = df_mapeamento
+                                    st.success(f"✅ Mapeamento '{mapping_name}' carregado com sucesso!")
+                                    # Rerun para atualizar a interface
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Erro ao carregar mapeamento do banco")
+                        
+                        with col_delete:
+                            if st.button("🗑️ Excluir", key="delete_mapping_btn", type="secondary"):
+                                # Mostrar confirmação antes de excluir
+                                if 'confirm_delete' not in st.session_state:
+                                    st.session_state['confirm_delete'] = selected_mapping['id']
+                                    st.warning(f"⚠️ Tem certeza que deseja excluir o mapeamento '{selected_mapping['name']}'?")
+                                    st.rerun()
+                        
+                        # Confirmar exclusão se necessário
+                        if st.session_state.get('confirm_delete') == selected_mapping['id']:
+                            col_confirm, col_cancel = st.columns([1, 1])
+                            
+                            with col_confirm:
+                                if st.button("✅ Confirmar Exclusão", key="confirm_delete_btn", type="primary"):
+                                    # Excluir mapeamento
+                                    success = delete_mapping_from_db(selected_mapping['id'])
+                                    
+                                    if success:
+                                        st.success(f"✅ Mapeamento '{selected_mapping['name']}' excluído com sucesso!")
+                                        # Limpar cache e session state
+                                        if cache_key in st.session_state:
+                                            del st.session_state[cache_key]
+                                        if 'confirm_delete' in st.session_state:
+                                            del st.session_state['confirm_delete']
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Erro ao excluir mapeamento")
+                            
+                            with col_cancel:
+                                if st.button("❌ Cancelar", key="cancel_delete_btn"):
+                                    if 'confirm_delete' in st.session_state:
+                                        del st.session_state['confirm_delete']
+                                    st.rerun()
+                        
+                        # Mostrar informações do mapeamento selecionado
+                        with st.expander("ℹ️ Informações do Mapeamento", expanded=False):
+                            st.write(f"**Nome:** {selected_mapping['name']}")
+                            st.write(f"**Arquivo:** {selected_mapping['filename'] or 'N/A'}")
+                            st.write(f"**Aba:** {selected_mapping['sheet_name'] or 'N/A'}")
+                            st.write(f"**Criado em:** {selected_mapping['created_at'].strftime('%d/%m/%Y %H:%M:%S')}")
+                else:
+                    st.info("🔍 Nenhum mapeamento salvo encontrado para este fundo.")
+                    st.info("💡 Use a opção 'Upload de arquivo Excel' para criar o primeiro mapeamento.")
+                
+                # Seção de gerenciamento de mapeamentos (só aparecer se houver mapeamentos)
+                if mappings:
+                    with st.expander("🛠️ Gerenciar Mapeamentos", expanded=False):
+                        st.subheader("Resumo dos Mapeamentos")
+                        
+                        # Criar DataFrame com informações dos mapeamentos
+                        df_mappings = pd.DataFrame([
+                            {
+                                'Nome': m['name'],
+                                'Arquivo': m['filename'] or 'N/A',
+                                'Aba': m['sheet_name'] or 'N/A',
+                                'Criado em': m['created_at'].strftime('%d/%m/%Y %H:%M')
+                            }
+                            for m in mappings
+                        ])
+                        
+                        st.dataframe(df_mappings, use_container_width=True, hide_index=True)
+                        
+                        st.subheader("Ações em Lote")
+                        st.warning("⚠️ **Atenção**: Estas ações são irreversíveis!")
+                        
+                        # Botão para excluir todos os mapeamentos do fundo
+                        if st.button("🗑️ Excluir TODOS os mapeamentos deste fundo", key="delete_all_mappings_btn", type="secondary"):
+                            if 'confirm_delete_all' not in st.session_state:
+                                st.session_state['confirm_delete_all'] = True
+                                st.error(f"⚠️ **ATENÇÃO**: Esta ação excluirá permanentemente TODOS os {len(mappings)} mapeamentos deste fundo!")
+                                st.rerun()
+                        
+                        # Confirmar exclusão em lote
+                        if st.session_state.get('confirm_delete_all'):
+                            st.error("🚨 **CONFIRMAÇÃO NECESSÁRIA**: Você tem certeza absoluta?")
+                            col_confirm_all, col_cancel_all = st.columns([1, 1])
+                            
+                            with col_confirm_all:
+                                if st.button("🔥 SIM, EXCLUIR TODOS!", key="confirm_delete_all_btn", type="primary"):
+                                    # Excluir todos os mapeamentos do fundo de uma vez
+                                    deleted_count = delete_all_mappings_from_fund(fund_id)
+                                    
+                                    if deleted_count > 0:
+                                        st.success(f"✅ {deleted_count} mapeamento(s) excluído(s) com sucesso!")
+                                        # Limpar cache e session state
+                                        if cache_key in st.session_state:
+                                            del st.session_state[cache_key]
+                                        if 'confirm_delete_all' in st.session_state:
+                                            del st.session_state['confirm_delete_all']
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Erro ao excluir mapeamentos ou nenhum mapeamento encontrado")
+                            
+                            with col_cancel_all:
+                                if st.button("❌ Cancelar", key="cancel_delete_all_btn"):
+                                    if 'confirm_delete_all' in st.session_state:
+                                        del st.session_state['confirm_delete_all']
+                                    st.rerun()
+                
+                # Mostrar preview se já carregado
+                if 'df_mapeamento' in st.session_state:
+                    with st.expander("👁️ Preview do Mapeamento Atual", expanded=False):
+                        st.dataframe(st.session_state['df_mapeamento'], use_container_width=True)
+        
+        else:
+            st.info("👆 Selecione um fundo primeiro para acessar as opções de mapeamento.")
+
     # Processar arquivo do balancete
     df_balancete = None
 
@@ -110,34 +347,9 @@ def lancamento():
             st.error(f"Erro ao carregar o arquivo do balancete: {str(e)}")
             st.error("Tente recarregar a página e enviar o arquivo novamente.")
     
-    # Processar arquivo do mapeamento
-    df_mapeamento = None
-    # Recebeu o arquivo
-    if mapeamento_file is not None:
-        try:
-            
-            # Processar o arquivo
-            df_mapeamento = _process_mapeamento_file(mapeamento_file)
-            
-            # Retorno do processamento
-            if df_mapeamento is not None:
-                # Salvar no session state
-                st.session_state['df_mapeamento'] = df_mapeamento
-                st.success("✅ Mapeamento processado e salvo com sucesso!")
-            else:
-                st.error("Erro ao processar o arquivo do mapeamento.")
-                
-        except Exception as e:
-            st.error(f"Erro ao carregar o arquivo do mapeamento: {str(e)}")
-            st.error("Tente recarregar a página e enviar o arquivo novamente.")
-    
     # Mostrar status dos arquivos
-    if balancete_file is None and mapeamento_file is None:
-        st.info("👆 Selecione os arquivos Excel para continuar.")
-    elif balancete_file is None:
+    if balancete_file is None:
         st.warning("⚠️ Arquivo do balancete ainda não foi carregado.")
-    elif mapeamento_file is None:
-        st.warning("⚠️ Arquivo do mapeamento ainda não foi carregado.")
     
 def _process_balancete_file(balancete_file):
     try:
@@ -254,10 +466,14 @@ def _process_mapeamento_file(mapeamento_file):
             )
             df = all_sheets[selected_sheet]
             st.info(f"Processando aba do mapeamento: {selected_sheet}")
+            # Salvar nome da aba no session state
+            st.session_state['selected_sheet_name'] = selected_sheet
         else:
             # Se há apenas uma aba, usar ela diretamente
             sheet_name = list(all_sheets.keys())[0]
             df = all_sheets[sheet_name]
+            # Salvar nome da aba no session state
+            st.session_state['selected_sheet_name'] = sheet_name
         
         return df
         

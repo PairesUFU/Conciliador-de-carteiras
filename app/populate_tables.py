@@ -92,7 +92,21 @@ def create_fund_quotas_table_if_not_exists(engine):
     return create_table(
         engine, table_name="fund_quotas", table_definition=table_definition
     )
-
+def create_mappings_table_if_not_exists(engine):
+    table_definition = """
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        fund_id INTEGER NOT NULL REFERENCES public.funds(id),
+        mapping_data JSONB NOT NULL,
+        filename TEXT,
+        sheet_name TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name, fund_id)
+    """
+    return create_table(
+        engine, table_name="mappings", table_definition=table_definition
+    )
 
 def insert_fund(engine, id: int, name: str, slug: str, government_id: str, is_active: bool):
     insert_query = """
@@ -219,6 +233,7 @@ def fix_encoding_fund_quotas(engine):
 def populate_tables(engine, funds_csv_path: str | None = None, fund_quotas_csv_path: str | None = None):
     create_funds_table_if_not_exists(engine)
     create_fund_quotas_table_if_not_exists(engine)
+    create_mappings_table_if_not_exists(engine)
     
     if funds_csv_path and os.path.exists(funds_csv_path):
         load_funds_from_csv(engine, funds_csv_path)
